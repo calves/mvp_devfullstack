@@ -1,6 +1,6 @@
 import psycopg2
 
-from app.model.Tarefa import Tarefa
+from model.Tarefa import Tarefa
 
 
 class TarefaDAO:
@@ -35,8 +35,10 @@ class TarefaDAO:
             
             
     def inserir(self, tarefa: Tarefa):
-        self.conecta.execute("INSERT INTO tarefa (titulo, descricao, status, data) VALUES (%s, %s, %s, %s) RETURNING id",
-                             (tarefa.titulo, tarefa.descricao, tarefa.status, tarefa.data))
+        self.conectar()
+        self.conecta.execute(
+            "INSERT INTO tarefa (titulo, descricao, status, data) VALUES (%s, %s, %s, %s) RETURNING id",
+            (tarefa.titulo, tarefa.descricao, tarefa.status, tarefa.data))
         pk = self.conecta.fetchone()[0]
         tarefa.id = pk
         self.conn.commit()
@@ -44,30 +46,43 @@ class TarefaDAO:
         return tarefa
 
     def atualizar(self, tarefa: Tarefa):
+        self.conectar()
         self.conecta.execute("UPDATE tarefa SET titulo=%s, descricao=%s, status=%s, data=%s WHERE id=%s",
                              (tarefa.titulo, tarefa.descricao, tarefa.status, tarefa.data, tarefa.id))
         self.conn.commit()
         self.conecta.close()
 
     def excluir(self, tarefa: Tarefa):
+        self.conectar()
         self.conecta.execute("DELETE FROM tarefa WHERE id=%s", (tarefa.id,))
         self.conn.commit()
         self.conecta.close()
 
     def buscar_por_id(self, tarefa: Tarefa):
+        self.conectar()
         self.conecta.execute("SELECT * FROM tarefa WHERE id=%s", (tarefa.id,))
         row = self.conecta.fetchone()
         if row is not None:
             tarefa = Tarefa(row[0], row[1], row[2], row[3], row[4])
+            self.conecta.close()
             return tarefa
         else:
+            self.conecta.close()
             return None
 
     def listar_todas(self):
+        self.conectar()
         tarefas = []
         self.conecta.execute("SELECT * FROM tarefa order by data desc")
         rows = self.conecta.fetchall()
+
         for row in rows:
             tarefa = Tarefa(row[0], row[1], row[2], row[3], row[4])
             tarefas.append(tarefa)
+
+        self.conecta.close()
         return tarefas
+
+    def conectar(self):
+        if self.conecta.closed:
+            self.conecta = self.conn.cursor()
