@@ -73,7 +73,7 @@ class TarefaDAO:
     def listar_todas(self):
         self.conectar()
         tarefas = []
-        self.conecta.execute("SELECT * FROM tarefa order by data desc")
+        self.conecta.execute("SELECT * FROM tarefa order by data, status")
         rows = self.conecta.fetchall()
 
         for row in rows:

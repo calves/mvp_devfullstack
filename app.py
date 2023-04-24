@@ -1,5 +1,6 @@
 import flask
 from flask import request, jsonify, json
+from flask_cors import CORS
 from flask_openapi3 import Info, Tag
 from flask_openapi3 import OpenAPI
 
@@ -12,6 +13,7 @@ from service.TarefaService import TarefaService
 info = Info(title="Tarefas API", version="1.0.0")
 app = OpenAPI(__name__, info=info)
 tarefas_tag = Tag(name="tarefa", description="Tarefas")
+CORS(app)
 
 
 @app.post('/tarefa/nova', summary="Criar nova tarefa", tags=[tarefas_tag])
@@ -52,7 +54,8 @@ def criar_response(body, status_code):
     headers = {
         'Access-Control-Allow-Origin': '*'
     }
-    return flask.Response(status=status_code, response=json.dumps(body), headers=headers, mimetype="application/json")
+    return flask.Response(status=status_code, response=json.dumps(body.json), headers=headers,
+                          mimetype="application/json")
 
 
 if __name__ == '__main__':
