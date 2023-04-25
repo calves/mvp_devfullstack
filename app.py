@@ -9,6 +9,7 @@ from basemodel.TarefaPathBaseModel import TarefaPathBaseModel
 from model.Tarefa import Tarefa
 from response.TarefaResponse import TarefaResponse
 from service.TarefaService import TarefaService
+from validate.TarefaValidate import TarefaValidate
 
 info = Info(title="Tarefas API", version="1.0.0")
 app = OpenAPI(__name__, info=info)
@@ -20,8 +21,11 @@ CORS(app)
 def adicionar_tarefa(body: TarefaBaseModel):
     tarefa_request = request.json
     tarefa = Tarefa('', tarefa_request['titulo'], tarefa_request['descricao'], 'false', tarefa_request['data'])
-    tarefa_gravada = TarefaService().gravar(tarefa)
-    return criar_response(jsonify(tarefa_gravada.__dict__), 200)
+    erros = TarefaValidate().validar(tarefa)
+    if len(erros) == 0:
+        tarefa_gravada = TarefaService().gravar(tarefa)
+        return criar_response(jsonify(tarefa_gravada.__dict__), 200, False)
+    return criar_response(erros, 400, True)
 
 
 @app.get('/tarefa/todas', summary="Listar todas as tarefas", tags=[tarefas_tag])
@@ -40,22 +44,25 @@ def finalizar_tarefa_por_id(path: TarefaPathBaseModel):
     else:
         mensagem = {'message': 'Tarefa nao encontrada'}
 
-    return criar_response(mensagem, status_code)
+    return criar_response(mensagem, status_code, True)
 
 
 @app.delete('/tarefa/removida/<int:id>', summary="Apagar tarefa por id", tags=[tarefas_tag])
 def apagar_tarefa(path: TarefaPathBaseModel):
     tarefa = Tarefa(path.id, '', '', '', '')
     TarefaService().excluir(tarefa)
-    return criar_response({'message': 'Tarefa removida com sucesso'}, 200)
+    return criar_response({'message': 'Tarefa removida com sucesso'}, 200, True)
 
 
-def criar_response(body, status_code):
+def criar_response(body, status_code, body_without_json: bool):
     headers = {
         'Access-Control-Allow-Origin': '*'
     }
-    return flask.Response(status=status_code, response=json.dumps(body.json), headers=headers,
-                          mimetype="application/json")
+    if body_without_json is False:
+        return flask.Response(status=status_code, response=json.dumps(body.json), headers=headers,
+                              mimetype="application/json")
+
+    return flask.Response(status=status_code, response=json.dumps(body), headers=headers, mimetype="application/json")
 
 
 if __name__ == '__main__':
